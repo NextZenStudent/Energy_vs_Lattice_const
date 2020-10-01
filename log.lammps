@@ -1,0 +1,118 @@
+LAMMPS (3 Mar 2020)
+# ---------- Initialize Simulation ---------------------
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+
+variable latconst equal 4.6
+# ---------- Create Atoms ---------------------
+lattice 	fcc ${latconst}
+lattice 	fcc 4.6
+Lattice spacing in x,y,z = 4.6 4.6 4.6
+region	box block 0 1 0 1 0 1 units lattice
+create_box	1 box
+Created orthogonal box = (0 0 0) to (4.6 4.6 4.6)
+  1 by 2 by 2 MPI processor grid
+
+lattice	fcc ${latconst} orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+lattice	fcc 4.6 orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+Lattice spacing in x,y,z = 4.6 4.6 4.6
+create_atoms 1 box
+Created 4 atoms
+  create_atoms CPU = 0.000276 secs
+replicate 5 5 5
+  orthogonal box = (0 0 0) to (23 23 23)
+  1 by 2 by 2 MPI processor grid
+  500 atoms
+  replicate CPU = 0.000727 secs
+
+# ---------- Define Interatomic Potential ---------------------
+pair_style eam/alloy
+pair_coeff * * FeNiCrCoCu-heafixed.setfl Ni
+neighbor 2.0 bin
+neigh_modify delay 10 check yes
+
+# ---------- Define Settings ---------------------
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+
+# ---------- Run Minimization ---------------------
+reset_timestep 0
+#fix 1 all box/relax iso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe lx ly lz press pxx pyy pzz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+WARNING: Using 'neigh_modify every 1 delay 0 check yes' setting during minimization (../min.cpp:190)
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7.80375
+  ghost atom cutoff = 7.80375
+  binsize = 3.90187, bins = 6 6 6
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/atomonly/newton
+      stencil: half/bin/3d/newton
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.62 | 4.62 | 4.62 Mbytes
+Step PotEng Lx Ly Lz Press Pxx Pyy Pzz c_eatoms 
+       0   -953.21411           23           23           23   -395931.31   -395931.31   -395931.31   -395931.31   -953.21411 
+       1   -953.21411           23           23           23   -395931.31   -395931.31   -395931.31   -395931.31   -953.21411 
+Loop time of 0.0007425 on 4 procs for 1 steps with 500 atoms
+
+95.9% CPU use with 4 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+        -953.214109095     -953.214109095     -953.214109095
+  Force two-norm initial, final = 9.39201e-14 9.39201e-14
+  Force max component initial, final = 6.80272e-15 6.80272e-15
+  Final line search alpha, max atom move = 0.5 3.40136e-15
+  Iterations, force evaluations = 1 2
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.000538   | 0.00055925 | 0.000571   |   0.0 | 75.32
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00012    | 0.00013325 | 0.000156   |   0.0 | 17.95
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 5e-05      |            |       |  6.73
+
+Nlocal:    125 ave 125 max 125 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+Nghost:    1099 ave 1099 max 1099 min
+Histogram: 4 0 0 0 0 0 0 0 0 0
+Neighs:    4875 ave 5120 max 4620 min
+Histogram: 1 0 0 1 0 0 0 1 0 1
+
+Total # of neighbors = 19500
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+variable natoms equal "count(all)"
+variable teng equal "c_eatoms"
+variable length equal "lx/5"
+variable ecoh equal "v_teng/v_natoms"
+
+print "Total energy (eV) = ${teng};"
+Total energy (eV) = -953.214109095371;
+print "Number of atoms = ${natoms};"
+Number of atoms = 500;
+print "Lattice constant (Angstoms) = ${length};"
+Lattice constant (Angstoms) = 4.6;
+print "Cohesive energy (eV) = ${ecoh};"
+Cohesive energy (eV) = -1.90642821819074;
+
+print "${latconst} ${ecoh}" append lattice_vs_energy.txt
+4.6 -1.90642821819074
+
+Total wall time: 0:00:00
